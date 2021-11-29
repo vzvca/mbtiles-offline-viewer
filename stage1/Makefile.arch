@@ -1,0 +1,9 @@
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
+
+libarch.a: $(OBJS)
+	@$(AR) r $@ $(OBJS)
+	@$(AR) s $@
+	@echo "$@ generated"
+
+
