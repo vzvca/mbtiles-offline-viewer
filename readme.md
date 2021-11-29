@@ -3,13 +3,13 @@
 This repository contains small standalone C programs to display maps using `MapLibre` in offline / air-gapped environments.
 
 Subdirectory `stage1` contains source code for a small C program which can render the world countries offline.
-This program is a refactor in C of https://github.com/klokantech/mapbox-gl-js-offline-example.
+This program is a refactor in C of [mapbox-gl-js-offline-example](https://github.com/klokantech/mapbox-gl-js-offline-example).
 
 Subdirectory stage2 contains an offline mbtiles viewer. It is derived from program in stage1.
 
 All programs start a local web server and (on Linux) opens the web browser to display the map using `xdg-open`.
 
-I wrote them to understand how to use `MapLibre` and how to build standalone applications using it. *This is not production grade software* but maybe they can be useful examples (they are released in the hope they will). 
+I wrote them to understand how to use `MapLibre` and how to build standalone applications using it. *This is not production grade software* but maybe it contains useful examples (they are released in the hope they will). 
 
 ## Stage 1 : world map view
 
@@ -107,7 +107,7 @@ This example uses data from [openmaptiles](https://openmaptiles.org/) (see "Cred
 $ ./mbv -x -m ./data/ex2/iceland.mbtiles -s @bright
 ~~~~
 
-Predefined styles are identified by their 1st char being '@'. There are '@basic', '@bright', '@dark' and '@positron'.
+Predefined styles are identified by their 1st char being `@`. There are `@basic`, `@bright`, `@dark` and `@positron`.
 
 Here is a screenshot of what's shown in the web browser with style `@bright`:
 
