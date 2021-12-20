@@ -1,16 +1,11 @@
 // --------------------------------------------------------------------------
-//   From the content of tiles.json build the 
+//   From the content of style.json build the controls to change rendering
 // --------------------------------------------------------------------------
-function parse_tiles_json( tiles )
+function parse_style_json( style )
 {
-    console.log("parse_tiles_json");
+    console.log("parse_style_json");
 
-    if ( !tiles.vector_layers ) {
-	console.log("Raster mbtiles");
-	return;
-    }
-    
-    for ( const layer of tiles.vector_layers ) {
+    for ( const layer of style.layers ) {
 	const lid = layer.id;
 
 	console.log( "Layer " + lid);
@@ -49,6 +44,7 @@ function parse_tiles_json( tiles )
 	    "type":  "checkbox",
 	    "class": "styled"
 	}).appendTo("#fset-vis-" + lid);
+	console.log("Layer " + lid + " visibility " + map.getLayoutProperty(lid, 'visibility'));
 	$("#vis-" + lid).click( function() {
 	    console.log("Toggle layer visibility " + lid );
 	    if ( $("#vis-" + lid).is(":checked") ) {
@@ -155,12 +151,3 @@ function parse_tiles_json( tiles )
     $( ".styled" ).checkboxradio();
 }
 
-
-// --------------------------------------------------------------------------
-//   Callback to trigger when everything is ready
-// --------------------------------------------------------------------------
-$( function() {
-    $.ajax({url: "tiles/tiles.json", success: function(tiles) {
-	parse_tiles_json(tiles);
-    }});
-});    
