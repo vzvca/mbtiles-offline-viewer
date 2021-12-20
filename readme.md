@@ -2,10 +2,14 @@
 
 This repository contains small standalone C programs to display maps using `MapLibre` in offline / air-gapped environments.
 
+Last stage (stage 3) contains the most capable viewer.
+
 Subdirectory `stage1` contains source code for a small C program which can render the world countries offline.
 This program is a refactor in C of [mapbox-gl-js-offline-example](https://github.com/klokantech/mapbox-gl-js-offline-example).
 
-Subdirectory stage2 contains an offline mbtiles viewer. It is derived from program in stage1.
+Subdirectory stage2 contains an offline mbtiles viewer. It is derived from program in stage1. It can only render vectorial mbtiles.
+
+Subdirectory stage3 contains an improved mbtiles viewer which can render raster mbtiles file too. For vectorial mbtiles file, there is a work in progress feature to dynamically change the rendering style for each displayed layer.
 
 All programs start a local web server and (on Linux) opens the web browser to display the map using `xdg-open`.
 
@@ -112,6 +116,17 @@ Predefined styles are identified by their 1st char being `@`. There are `@basic`
 Here is a screenshot of what's shown in the web browser with style `@bright`:
 
 ![alt text](images/ex2.png)
+
+## Stage 3 : render raster mbtiles and customize rendering style
+
+### Example 1 : raster mbtiles rendering
+
+~~~~
+$ ./mbv -x -m ./data/ex3/maptiler-satellite-lowres-2018-03-01-planet.mbtiles
+~~~~
+
+![alt text](images/raster-sat.png)
+
 
 ## Credits
 

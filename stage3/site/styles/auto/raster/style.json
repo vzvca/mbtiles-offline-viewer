@@ -1,0 +1,23 @@
+{
+    "id": "raster-auto-style",
+    "name": "raster-auto-style",
+    "layers": [
+        {
+            "id": "raster-tiles",
+            "type": "raster",
+            "source": "raster-tiles",
+            "minzoom": 0,
+            "maxzoom": 22
+        }
+    ],
+    "sources": {
+        "raster-tiles": {
+            "url": "tiles/tiles.json",
+            "type": "raster"
+        }
+    },
+    "version": 8,
+    "metadata": {
+        "maptiler:copyright": "Automatically generated"
+    }
+}

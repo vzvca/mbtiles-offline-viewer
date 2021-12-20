@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="maplibre-gl-js/v1.15.1/maplibre-gl.js"></script>
+  <link href="maplibre-gl-js/v1.15.1/maplibre-gl.css" rel="stylesheet" />
+  <link href="jquery/jquery-ui-1.13.0.css" rel="stylesheet" />
+  <script src="jquery/jquery-3.6.0.js"></script>
+  <script src="jquery/jquery-ui-1.13.0.js"></script>
+  <script src="autostyle.js"></script>
+  <style>
+    #map {position: absolute; top: 0; right: 0; bottom: 0; left: 0;}
+    #layer-list {position: absolute; top: 20; right: 20; z-index: 1}
+  </style>
+</head>
+<body>
+  <div id="map">
+    <div id="layer-list"></div>
+  </div>
+  <script>
+    var map = new maplibregl.Map({
+      container: 'map',
+      style: 'style.json',
+      center: [0, 0],
+      zoom: 1
+    });
+    // Add zoom and rotation control to the map
+    map.addControl(new maplibregl.NavigationControl());
+  </script>
+</body>
+</html>
