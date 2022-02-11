@@ -137,12 +137,12 @@ static void safewrite(int fd, const char *b, size_t n)
     //  write(fileno(stdout), b+w, s);
     //}
     if (s < 0 ) {
-      if ( s == EAGAIN || s == EWOULDBLOCK ) {
+      if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
 	usleep(1);
 	continue;
       }
       else {
-	perror("write");
+	perror("write failed");
 	return;
       }
     }
@@ -487,7 +487,7 @@ int url_cb( http_parser *p, const char *at, size_t length)
   req_t *req = &cnx->req;
   
   if ( req->url ) {
-    req->url = erealloc( req->url, strlen(req->url) + length );
+    req->url = erealloc( req->url, strlen(req->url) + length + 1 );
   }
   else {
     req->url = emalloc( length + 1 );
@@ -517,7 +517,7 @@ int header_field_cb( http_parser *p, const char *at, size_t length)
   }
   
   if ( *f ) {
-    *f = erealloc( *f, strlen(*f) + length );
+    *f = erealloc( *f, strlen(*f) + length + 1 );
   }
   else {
     *f = emalloc( length + 1 );
@@ -548,7 +548,7 @@ int header_value_cb( http_parser *p, const char *at, size_t length)
   }
 
   if ( *f ) {
-    *f = erealloc( *f, strlen(*f) + length );
+    *f = erealloc( *f, strlen(*f) + length + 1 );
   }
   else {
     *f = emalloc( length + 1 );
