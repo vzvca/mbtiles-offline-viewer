@@ -6,6 +6,11 @@
 
 #include <json.h>
 
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
+
 // externals
 extern int g_port;
 extern char *arch_data( char *k );

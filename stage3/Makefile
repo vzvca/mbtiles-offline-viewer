@@ -23,7 +23,7 @@
 HPARSERDIR=../http-parser-2.9.4
 
 # -- debug on
-CFLAGS+=-g3
+CFLAGS+=-g3 -I $(HPARSERDIR)
 
 # -- lib json-c
 CFLAGS += $(shell pkg-config --cflags json-c)
@@ -46,7 +46,10 @@ http_parser.o: http_parser.c http_parser.h
 	$(MAKE) -C ../http-parser-2.9.4 $@
 	cp $(HPARSERDIR)/$@ .
 
-arch/libarch.a: archsrc
+arch:
+	mkdir $@
+
+arch/libarch.a: arch archsrc
 	$(MAKE) -C arch -f ../Makefile.arch
 
 mkarch.o: strhash.c mkarch.c 
