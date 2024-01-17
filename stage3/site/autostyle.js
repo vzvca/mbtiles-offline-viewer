@@ -45,6 +45,7 @@ function parse_style_json( style )
 	    "class": "styled"
 	}).appendTo("#fset-vis-" + lid);
 	console.log("Layer " + lid + " visibility " + map.getLayoutProperty(lid, 'visibility'));
+	$("#vis-" + lid).prop("checked",true);
 	$("#vis-" + lid).click( function() {
 	    console.log("Toggle layer visibility " + lid );
 	    if ( $("#vis-" + lid).is(":checked") ) {
