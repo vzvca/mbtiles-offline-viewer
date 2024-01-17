@@ -46,6 +46,7 @@ int serverfd = -1;
 
 #define BLKIO 4096
 
+int g_quiet = 1;
 int g_port = 9000;
 char *g_map, *g_style;
 
@@ -61,6 +62,18 @@ char *mbtiles_auto_style_json( void *dbh, int *len );
 int doclose( cnx_t *cnx );
 char *emalloc( size_t sz );
 
+/* --------------------------------------------------------------------------
+ *  Basic logger
+ * --------------------------------------------------------------------------*/
+void logger(const char *fmt, ...)
+{
+  if (!g_quiet) {
+    va_list va;
+    va_start(va, fmt);
+    vfprintf(stderr, fmt, va);
+    va_end(va);
+  }
+}
 
 /* --------------------------------------------------------------------------
  *  Retrieve connection by file descriptor
@@ -121,7 +134,7 @@ void writeln( int fd, char *fmt, ... )
 static void send_response( int fd, enum http_status code )
 {
   writeln( fd, "HTTP/1.1 %d %s", code, http_status_str(code));
-  fprintf( stderr, "ANS %d %s\n", code, http_status_str(code));
+  logger("ANS %d %s\n", code, http_status_str(code));
 }
 
 /* --------------------------------------------------------------------------
@@ -211,7 +224,7 @@ int http_reply_style( cnx_t *cnx, char *mtype )
   static char *data = NULL;
   static int len = 0;
 
-  fprintf(stderr, "http_reply_style: %s\n", g_style );
+  logger("http_reply_style: %s\n", g_style );
 
   if ( !data ) {
     if ( g_style[0] == '@' ) {
@@ -296,7 +309,7 @@ int http_reply_tile( cnx_t *cnx, char *mtype, int x, int y, int z, int gzip )
   char *data = NULL;
   int len = 0;
 
-  fprintf(stderr, "http_reply_tile: %d/%d/%d (%s gzip %d)\n", z, x, y, mtype, gzip );
+  logger("http_reply_tile: %d/%d/%d (%s gzip %d)\n", z, x, y, mtype, gzip );
 
   data = mbtiles_read( g_sql, z, x, y, &len );
   if ( data ) {
@@ -401,7 +414,7 @@ int http_reply( cnx_t *cnx )
       k = http_rm_percent( k, l );
     }
     l = strlen(k);
-    fprintf( stderr, "URL %.*s\n", l, k );
+    logger("URL %.*s\n", l, k );
 
     // special case for "/tiles/*" URL which are served
     // using mbtiles file content
@@ -518,7 +531,7 @@ int message_begin_cb( http_parser *p )
   cnx_t *cnx = (cnx_t*) p->data;
   req_t *req = &cnx->req;
   req_clean( req );
-  printf("-------------------------------------\n");
+  logger("-------------------------------------\n");
   return 0;
 }
 
@@ -566,9 +579,9 @@ int message_complete_cb( http_parser *p)
   req_t *req = &cnx->req;
   int i, r;
 
-  puts( req->url );
+  logger( req->url );
   for( i = 0; i < req->nhv; i+=2 ) {
-    printf("%s -> %s\n", req->hv[i], req->hv[i+1]);
+    logger("%s -> %s\n", req->hv[i], req->hv[i+1]);
   }
 
   http_parser_url_init( &cnx->urlp );
@@ -584,7 +597,7 @@ int message_complete_cb( http_parser *p)
   
   req_clean( req );
 
-  printf("-------------------------------------\n");
+  logger("-------------------------------------\n");
   
   return 0;
 }
@@ -870,6 +883,8 @@ void usage( char *fmt, ... )
   fprintf( fout, "\n" );
 
   fprintf( fout, "\t -h            Prints this help message.\n");
+  fprintf( fout, "\t -x            Open web browser.\n");
+  fprintf( fout, "\t -v            Be verbose.\n");
   fprintf( fout, "\t -p port       Sets port number to listen on.\n");
   fprintf( fout, "\t -m mbtiles    Sets mbtile file to display.\n");
   fprintf( fout, "\t -s style      Sets style.json file to use for rendering.\n");
@@ -886,12 +901,13 @@ int main( int argc, char **argv )
 #define F_MAP   0x02
 #define F_STYLE 0x04
 #define F_EXEC  0x08
+#define F_VERB  0x10
   int opt, flags = 0;
   
   signal( SIGPIPE, SIG_IGN );
   atexit( byebye );
   
-  while ((opt = getopt(argc, argv, "hxp:m:s:")) != -1) {
+  while ((opt = getopt(argc, argv, "hxvp:m:s:")) != -1) {
     switch (opt) {
     case 'h':
       usage( NULL );
@@ -901,6 +917,12 @@ int main( int argc, char **argv )
 	usage( "option '-%c' can be specified only once.\n", opt);
       }
       flags |= F_EXEC;
+      break;
+    case 'v':
+      if ( flags & F_VERB ) {
+	usage( "option '-%c' can be specified only once.\n", opt);
+      }
+      flags |= F_VERB;
       break;
     case 'p':
       if ( flags & F_PORT ) {
@@ -933,6 +955,9 @@ int main( int argc, char **argv )
   }
   if ( !(flags & F_STYLE) ) {
     g_style = "@auto";
+  }
+  if ( flags & F_VERB ) {
+    g_quiet = 0;
   }
   
   serverfd = server(g_port);

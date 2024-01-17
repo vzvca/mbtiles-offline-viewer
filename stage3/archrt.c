@@ -13,6 +13,8 @@ extern struct {
 extern int __arch__prime__;
 extern int __arch__count__;
 
+extern void logger(const char *fmt, ...);
+
 char *arch_data( char *k )
 {
   uint32_t h = hash( __arch__prime__, k );
@@ -28,9 +30,9 @@ char *arch_data( char *k )
 char *arch_data_ex( char *k, int len )
 {
   uint32_t h = hash2len( __arch__prime__, k, len );
-  fprintf( stderr, "searching '%.*s'\n", len, k);
+  logger("searching '%.*s'\n", len, k);
   while( __arch__index__[h].key ) {
-    fprintf( stderr, "... scan '%s'\n", __arch__index__[h].key);
+    logger( "... scan '%s'\n", __arch__index__[h].key);
     if ( !strncmp( __arch__index__[h].key, k, len) ) {
       return __arch__index__[h].data;
     }
