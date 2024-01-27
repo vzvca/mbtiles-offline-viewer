@@ -142,7 +142,6 @@ function parse_style_json( style )
 	    "id":   "label-color-" + lid,
 	    "for":   "color-" + lid,
 	}).appendTo("#fset-color-" + lid);
-	$("#label-color-" + lid).text( "Color" );
 	$("#color-" + lid).change( function() {
 	    console.log("color change layer " + lid);
 	    if (lid.endsWith('-fill')) {
