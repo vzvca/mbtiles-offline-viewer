@@ -12,7 +12,7 @@ copy ()
 
 mkdir -p /tmp/arch
 find  /tmp/arch -name '*.c' -delete
-./mkarch -i site -o /tmp/arch -p site/
+./mkarch -z -i site -o /tmp/arch -p site/
 
 for f in /tmp/arch/__*.c
 do

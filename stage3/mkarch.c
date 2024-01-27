@@ -7,14 +7,17 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <zlib.h>
 
 #include "strhash.c"
 
 typedef struct entry_s {
   struct entry_s *next;
-  char *fname;           // file name
-  char varname[32];      // C variable name
-  int sz;
+  char *fname;                    // file name / path
+  char varname[32];               // C variable name
+  unsigned int sz: 24;            // size
+  unsigned int ratio: 7;          // compression ratio (rounded to next integer)
+  unsigned int compressed: 1;     // compressed ?
 } entry_t;
 
 typedef struct index_s {
@@ -27,7 +30,9 @@ typedef struct index_s {
 
 // forward
 int dofilehex( FILE *fin, FILE *fout, char *varname );
-FILE* dofopen( char *name, char *mode );
+int dobufhex( char *buf, int sz, FILE *fout, char *varname );
+FILE* dofopen( char *name, char *mode);
+int dont_compress(char *name);
 
 uint32_t prime( int sz )
 {
@@ -85,7 +90,7 @@ char *emalloc( size_t sz )
   return res;
 }
 
-int index_arch( index_t *index )
+int index_arch( index_t *index, int compress )
 {
   entry_t *ent;
   char path[256];
@@ -100,10 +105,54 @@ int index_arch( index_t *index )
     fin = dofopen( ent->fname, "r" );
 
     snprintf( path, sizeof(path),  "%s/%s.c", index->opath, ent->varname );
-    fout = dofopen( path, "w" );
+    fout = dofopen( path, "w");
 
-    ent->sz = dofilehex( fin, fout, ent->varname );
+    if (compress && !dont_compress(ent->fname)) {
+      struct stat stb;
+      char *tmp, *ctmp;
+      unsigned long clen;
+      int res;
+      
+      if ( stat( ent->fname, &stb) == -1 ) {
+	perror ("index_arch: stat()");
+	exit (1);
+      }
+      tmp = (char*) emalloc (stb.st_size);
+      if ((res = fread (tmp, 1, stb.st_size, fin)) != stb.st_size) {
+	if (res == -1) {
+	  perror ("index_arch: fread()");
+	  exit (1);
+	}
+	else {
+	  fputs ("index_arch: fread() - not enough bytes read", stderr);
+	  exit (1);
+	}
+      }
+      
+      clen = compressBound(stb.st_size);
+      ctmp = (char*) emalloc (clen);
+      res = compress2 (ctmp, &clen, tmp, stb.st_size, Z_BEST_COMPRESSION);
+      if (res != Z_OK) {
+	fputs ("index_arch: compress2() error", stderr);
+	exit (1);
+      }
+      ent->sz = clen;
+      ent->compressed = 1;
+      ent->ratio = (stb.st_size << 3) / ent->sz + 1;
+      printf("Compressing %s %d -> %d cx ration %.3f\n",
+	     ent->fname, stb.st_size, ent->sz, (double) ent->ratio / 8.0);
 
+      dobufhex (ctmp, ent->sz, fout, ent->varname);
+      
+      free (ctmp);
+      free (tmp);
+    }
+    else {
+      ent->sz = dofilehex( fin, fout, ent->varname );
+      ent->compressed = 0;
+      ent->ratio = 1;
+    }
+    
     fclose(fin);
     fclose(fout);
   }
@@ -137,20 +186,28 @@ int index_hash( index_t *index )
   }
 
   snprintf( path, sizeof(path), "%s/__index__.c", index->opath );
-  fout = dofopen( path, "w" );
+  fout = dofopen( path, "w");
 
   for( ent = index->head; ent; ent = ent->next ) {
     fprintf( fout, "extern char %s[];\n", ent->varname );
   }
   
-  fputs( "struct { char *key; char *data; int sz; }  __arch__index__[] = {\n", fout );
+  fputs( "struct __arch__elem__s {\n"
+	 "   char *key;\n"
+	 "   char *data;\n"
+	 "   unsigned int sz:24;\n"
+	 "   unsigned int ratio: 7;\n"
+	 "   unsigned int compressed:1;\n"
+	 "};", fout);
+  fputs( "struct __arch__elem__s __arch__index__[] = {", fout );
   
   for( i = 0; i < p; ++i ) {
     if ( tab[i] ) {
-      fprintf( fout, " { \"%s\", %s, %d },\n", rmprefix(index->prefix, tab[i]->fname), tab[i]->varname, tab[i]->sz );
+      fprintf( fout, " { \"%s\", %s, %d, %d, %d },\n", rmprefix(index->prefix, tab[i]->fname),
+	       tab[i]->varname, tab[i]->sz, tab[i]->ratio, tab[i]->compressed );
     }
     else {
-      fprintf( fout, " { (char*)0, (char*)0, 0 },\n" );
+      fprintf( fout, " { (char*)0, (char*)0, 0, 0 },\n" );
     }
   }
   
@@ -337,7 +394,57 @@ int dofilehex( FILE *fin, FILE *fout, char *varname )
   return sz;  
 }
 
-FILE* dofopen( char *name, char *mode )
+int dobufhex (char *buf, int sz, FILE *fout, char *varname)
+{
+  static char *xdigit = "0123456789abcdef";
+  char bufo[4096];
+  char *s, *d;
+
+  fprintf( fout, "char %s[] = {", varname );
+  fflush( fout );
+  
+  for (s = buf, d = bufo; s - buf < sz; ++s) {
+    if ( (s - buf) % 16 == 0 ) APPEND( '\n' );
+    APPEND( '0' );
+    APPEND( 'x' );
+    APPEND( xdigit[ ((*s) >> 4) & 0xf] );
+    APPEND( xdigit[ (*s) & 0xf] );
+    APPEND( ',' );
+  }
+  if ( d - bufo ) {
+    safewrite( fout, bufo, d - bufo );
+  }
+  fprintf( fout, "};\n" );
+  fflush( fout );
+  return sz;  
+}
+
+
+// returns 1 if no compression required
+int dont_compress(char *name)
+{
+  struct stat stb;
+  int len;
+  if ( stat( name, &stb) == -1 ) {
+    return 1;
+  }
+  if (stb.st_size < 64) return 1;
+  len = strlen(name);
+  // json, html and css text can be highly compressed
+  // even if original file is small
+  if (len >= 5 && !strcmp(name+len-5, ".json")) return 0;
+  if (len >= 5 && !strcmp(name+len-5, ".html")) return 0;
+  if (len >= 4 && !strcmp(name+len-4, ".css")) return 0;
+  if (len >= 4 && !strcmp(name+len-4, ".txt")) return 0;
+  if (len >= 4 && !strcmp(name+len-4, ".TXT")) return 0;
+  // dont recompress PNG not worth
+  if (len >= 4 && !strcmp(name+len-4, ".png")) return 1;
+  // empiric rule depending on size
+  // based on some manual tests
+  return (stb.st_size < 700);
+}
+
+FILE* dofopen (char *name, char *mode)
 {
   FILE *f;
   f = fopen( name, mode );
@@ -382,10 +489,12 @@ int usage( char *fmt, ... )
     fputs( "program -v varname [-i inputfile] [-o outputfile]\n", fout );
   }
 
-  fputs( "\t -h                  prints this help message\n", fout );
+  fputs( "\t -h                  Prints this help message\n", fout );
+  fputs( "\t -z                  Compress files with zlib\n", fout );
   fputs( "\t -v varname          C variable name\n", fout );
-  fputs( "\t -i inputfile        input file name (defaults to stdin)\n", fout );
-  fputs( "\t -i outputfile       output file name (defaults to stdout)\n", fout );
+  fputs( "\t -p prefix           Site prefix, will be removed.\n", fout );
+  fputs( "\t -i /path/to/input   input file or directory. Defaults to stdout\n", fout );
+  fputs( "\t -o /path/to/output  output file or directory. Defaults to stdout\n", fout );
 
   exit( fmt ? 1 : 0 );
 }
@@ -398,27 +507,32 @@ int main( int argc, char **argv )
   char *varname = NULL;
   char *ipath = NULL;
   char *opath = NULL;
+  int compress = 0;
   int opt, fireg, fidir, foreg, fodir;
 
-  while ((opt = getopt(argc, argv, "hv:i:o:p:")) != -1) {
+  while ((opt = getopt(argc, argv, "hzv:i:o:p:")) != -1) {
     switch (opt) {
     case 'h':
       usage(NULL);
       break;
+    case 'z':
+      if ( compress ) usage( "option '-%c' found more than once.\n", opt );
+      compress = 1;
+      break;
     case 'p':
-      if ( prefix ) usage( "option '%s' found more than once.\n", "-p" );
+      if ( prefix ) usage( "option '-%c' found more than once.\n", opt );
       prefix = optarg;
       break;
     case 'v':
-      if ( varname ) usage( "option '%s' found more than once.\n", "-v" );
+      if ( varname ) usage( "option '-%c' found more than once.\n", opt );
       varname = optarg;
       break;
     case 'i':
-      if ( ipath  ) usage( "option '%s' found more than once.\n", "-i" );
+      if ( ipath  ) usage( "option '-%c' found more than once.\n", opt );
       ipath = optarg;
       break;
     case 'o':
-      if ( opath ) usage( "option '%s' found more than once.\n", "-o" );
+      if ( opath ) usage( "option '-%c' found more than once.\n", opt );
       opath = optarg;
       break;
     default: /* '?' */
@@ -438,12 +552,19 @@ int main( int argc, char **argv )
     if ( !varname ) {
       usage( "option '-v' is mandatory.\n" );
     }
-    fin = dofopen( ipath, "r" );
+    fin = dofopen( ipath, "r");
     if ( opath ) {
-      fout = dofopen( opath, "w" );
+      fout = dofopen( opath, "w");
     }
     dofilehex( fin, fout, varname );
-    if ( ipath ) fclose(fin);
+    if ( ipath ) {
+      if (!compress) {
+	fclose(fin);
+      }
+      else {
+	pclose(fin);
+      }
+    }
     if ( opath ) fclose(fout);
   }
   if ( fidir == 1 ) { // input directory specified
@@ -481,7 +602,7 @@ int main( int argc, char **argv )
       exit(1);
     }
     walkdir( idir, ipath, &index);
-    index_arch( &index );
+    index_arch( &index, compress );
     index_hash( &index );
     index_free( &index );
     closedir( idir );

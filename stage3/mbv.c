@@ -20,6 +20,7 @@ struct req_s {
   char *url;
   char *hv[64];
   int   nhv;
+  int   accept_deflate;
   char *body;
 };
 
@@ -46,7 +47,9 @@ int serverfd = -1;
 
 #define BLKIO 4096
 
+
 int g_quiet = 1;
+int g_zero = 0;
 int g_port = 9000;
 char *g_map, *g_style;
 
@@ -174,6 +177,9 @@ int http_reply_data_ex( cnx_t *cnx, char *mtype, char *data, int len, ... )
   
   writeln( fd, "Content-Type: %s", mtype);
   writeln( fd, "Content-Length: %d", len );
+  if ( cnx->req.accept_deflate ) {
+    writeln (fd, "Content-Encoding: deflate");
+  }
   if ( !http_should_keep_alive( &cnx->parser) ) {
     writeln( fd, "Connection: Close");
   }
@@ -209,9 +215,9 @@ int http_reply_tiles_json( cnx_t *cnx, char *mtype )
   static char *data = NULL;
   static int len = 0;
 
-  if ( !data ) {
-    data = mbtiles_tiles_json( g_sql, &len );
-  }
+  // force to reply with uncompressed data
+  cnx->req.accept_deflate = 0;
+  data = mbtiles_tiles_json( g_sql, &len );
   
   return http_reply_data( cnx, mtype, data, len);
 }
@@ -226,76 +232,77 @@ int http_reply_style( cnx_t *cnx, char *mtype )
 
   logger("http_reply_style: %s\n", g_style );
 
-  if ( !data ) {
-    if ( g_style[0] == '@' ) {
-      if ( !strcmp( g_style + 1, "basic" ) ||
-	   !strcmp( g_style + 1, "bright" ) ||
-	   !strcmp( g_style + 1, "dark" ) ||
-	   !strcmp( g_style + 1, "positron" )) {
+  // force to reply with uncompressed data
+  cnx->req.accept_deflate = 0;
+  
+  if ( g_style[0] == '@' ) {
+    if ( !strcmp( g_style + 1, "basic" ) ||
+	 !strcmp( g_style + 1, "bright" ) ||
+	 !strcmp( g_style + 1, "dark" ) ||
+	 !strcmp( g_style + 1, "positron" )) {
       
-	char style[48] = "styles/openmaptiles/";
-	char *p;
-      
-	strcat( style, g_style+1 );
-	strcat( style, "/style.json");
-
-	p = arch_data( style );
-	if ( p ) {
-	  data = emalloc(strlen(p)+32);
-	  sprintf( data, p, g_port );
-	  len = strlen(data);
-	}
-	else {
-	  fprintf( stderr, "Unknown predefined style '%s'. Giving up...\n", g_style+1 );
-	  exit(1);
-	}
-      }
-      else if ( !strcmp( g_style + 1, "auto" )) {
-	data = mbtiles_auto_style_json( g_sql, &len );
-      }
-      else {
-	fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
-	return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
-      }
-    }
-    else {
-      FILE *fin = fopen( g_style, "r" );
+      char style[48] = "styles/openmaptiles/";
       char *p;
       
-      if ( fin == NULL ) {
-	perror( g_style );
-	exit(1);
-      }
-      if ( fseek( fin, 0L, SEEK_END) == -1 ) {
-	perror( g_style );
-	exit(1);
-      }
-      len = (int) ftell(fin);
-      rewind(fin);
+      strcat( style, g_style+1 );
+      strcat( style, "/style.json");
 
-      if ( len > 0 ) {
-	int n, t = 0;
-	p = (char*) emalloc(len);
-	while( t < len ) {
-	  n = fread( p + t, 1, (len-t > BLKIO) ? BLKIO : len - t, fin);
-	  if ( n == -1 ) {
-	    perror( g_style );
-	    exit(1);
-	  }
-	  t += n;
-	}
-	data = emalloc(len + 4);
+      p = arch_data( style, &g_zero );
+      if ( p ) {
+	data = emalloc(strlen(p)+32);
 	sprintf( data, p, g_port );
 	len = strlen(data);
-	free(p);
       }
       else {
-	fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
-	return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
+	fprintf( stderr, "Unknown predefined style '%s'. Giving up...\n", g_style+1 );
+	exit(1);
       }
-    
-      fclose(fin);
     }
+    else if ( !strcmp( g_style + 1, "auto" )) {
+      data = mbtiles_auto_style_json( g_sql, &len );
+    }
+    else {
+      fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
+      return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
+    }
+  }
+  else {
+    FILE *fin = fopen( g_style, "r" );
+    char *p;
+      
+    if ( fin == NULL ) {
+      perror( g_style );
+      exit(1);
+    }
+    if ( fseek( fin, 0L, SEEK_END) == -1 ) {
+      perror( g_style );
+      exit(1);
+    }
+    len = (int) ftell(fin);
+    rewind(fin);
+
+    if ( len > 0 ) {
+      int n, t = 0;
+      p = (char*) emalloc(len);
+      while( t < len ) {
+	n = fread( p + t, 1, (len-t > BLKIO) ? BLKIO : len - t, fin);
+	if ( n == -1 ) {
+	  perror( g_style );
+	  exit(1);
+	}
+	t += n;
+      }
+      data = emalloc(len + 4);
+      sprintf( data, p, g_port );
+      len = strlen(data);
+      free(p);
+    }
+    else {
+      fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
+      return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
+    }
+    
+    fclose(fin);
   }
 
   http_reply_data( cnx, mtype, data, len );
@@ -304,21 +311,19 @@ int http_reply_style( cnx_t *cnx, char *mtype )
 /* --------------------------------------------------------------------------
  *  Reply with a tile
  * --------------------------------------------------------------------------*/
-int http_reply_tile( cnx_t *cnx, char *mtype, int x, int y, int z, int gzip )
+int http_reply_tile( cnx_t *cnx, char *mtype, int x, int y, int z, int gzip)
 {
   char *data = NULL;
   int len = 0;
 
-  logger("http_reply_tile: %d/%d/%d (%s gzip %d)\n", z, x, y, mtype, gzip );
+  logger("http_reply_tile: %d/%d/%d (%s%s)\n", z, x, y, mtype, gzip ? " compressed" : "");
 
+  cnx->req.accept_deflate = 0;  // data is identity or gzip but not deflate
   data = mbtiles_read( g_sql, z, x, y, &len );
   if ( data ) {
-    if (!gzip) {
-      return http_reply_data( cnx, mtype, data, len);
-    } else {
-      return http_reply_data_ex( cnx, mtype, data, len,
-				 "Content-encoding: gzip", NULL );
-    }
+    return http_reply_data_ex( cnx, mtype, data, len,
+			       gzip ? "Content-encoding: gzip" : NULL,
+			       NULL );
   }
   else {
     return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
@@ -448,11 +453,12 @@ int http_reply( cnx_t *cnx )
       }
     }
     else {
-      data = arch_data_ex( k, l);
+      // get data maybe compressed if gzip encoding is supported
+      data = arch_data_ex( k, l, &cnx->req.accept_deflate );
     }
     
     if ( data ) {
-      int len = arch_size_ex( k, l);
+      int len = arch_size_ex( k, l, &cnx->req.accept_deflate );
       mtype = http_mimetype(k,l);
       return http_reply_data( cnx, mtype, data, len);
     }
@@ -542,8 +548,19 @@ int headers_complete_cb( http_parser *p)
 {
   cnx_t *cnx = (cnx_t*) p->data;
   req_t *req = &cnx->req;
+  int i;
   // mark end of headers
   if ( req->nhv % 2 ) req->nhv++;
+  // check if deflate compression method supported
+  for (i = 0; i < req->nhv; i+=2) {
+    if (!strcasecmp(req->hv[i], "accept-encoding")) {
+      if (strstr(req->hv[i+1], "deflate") != NULL) {
+	puts ("======== ACCEPT DEFLATE");
+	req->accept_deflate = 1;
+      }
+      break;
+    }
+  }
   return 0;
 }
 

@@ -30,7 +30,7 @@ CFLAGS += $(shell pkg-config --cflags json-c)
 LDFLAGS += $(shell pkg-config --libs json-c)
 
 # -- lib sqlite3
-LDFLAGS += -lsqlite3
+LDFLAGS += -lsqlite3 -lz
 
 # -- lib website arch
 LDFLAGS += -Larch -larch 
@@ -57,7 +57,7 @@ mbv.o: strhash.c mbv.c
 mbtiles.o: mbtiles.c
 
 mkarch: mkarch.o
-	$(CC) -o $@ $<
+	$(CC) -o $@ $< -lz
 
 archsrc: mkarch
 	./mkarchsrc.sh
