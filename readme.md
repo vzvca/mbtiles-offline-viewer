@@ -119,6 +119,21 @@ Here is a screenshot of what's shown in the web browser with style `@bright`:
 
 ## Stage 3 : render raster mbtiles and customize rendering style
 
+Program usage :
+
+~~~~
+$ ./mbv -h
+usage: 
+	 -h            Prints this help message.
+	 -b            Be verbose.
+	 -x            Opens web browser.
+	 -p port       Sets port number to listen on.
+	 -m mbtiles    Sets mbtile file to display.
+	 -s style      Sets style.json file to use for rendering.
+~~~~
+
+Additional dependency `libz`.
+
 ### Example 1 : raster mbtiles rendering
 
 ~~~~
