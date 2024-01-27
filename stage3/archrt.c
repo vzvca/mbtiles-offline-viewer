@@ -178,7 +178,7 @@ static char *cache_uncompress (struct arch_cache_s *e)
   
   assert (e->elem->compressed == 1);
 
-  printf("=======UNCOMPRESS %s\n", e->elem->key);
+  logger("uncompressing %s\n", e->elem->key);
 
   ulen = (e->elem->ratio*e->elem->sz)>>3;
   e->udata = (char*) malloc (ulen);
@@ -215,7 +215,7 @@ static int cache_handle (struct __arch__elem__s *e)
     cache_uncompress (c);
   }
   else {
-    printf("==== FOUND CACHED DATA AT %d\n", i);
+    logger("Using cached uncompressed data at index %d\n", i);
   }
   // move at top of LRU list
   cache_unlink(i);

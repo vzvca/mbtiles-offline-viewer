@@ -555,7 +555,7 @@ int headers_complete_cb( http_parser *p)
   for (i = 0; i < req->nhv; i+=2) {
     if (!strcasecmp(req->hv[i], "accept-encoding")) {
       if (strstr(req->hv[i+1], "deflate") != NULL) {
-	puts ("======== ACCEPT DEFLATE");
+	logerr ("deflate encoding supported");
 	req->accept_deflate = 1;
       }
       break;
