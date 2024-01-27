@@ -135,10 +135,10 @@ function parse_style_json( style )
 	// --------------------------------------------------
 	let colorval = "#000000";
 	if (lid.endsWith('-fill')) {
-	    colorval = "#8080FF";
+	    colorval = "#8080ff";
 	}
 	if (lid.endsWith('-line')) {
-	    colorval = "#3030FF";
+	    colorval = "#3030ff";
 	}
 	
 	$("<input>", {

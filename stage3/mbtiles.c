@@ -427,7 +427,7 @@ char *mbtiles_auto_vectorial_style_json( void *dbh, int *len )
     }
     
     data = (char*) json_object_to_json_string_ext( style, JSON_C_TO_STRING_PRETTY );
-    //data = strdup(data);
+    data = strdup(data);
 
     //puts(data);
     
