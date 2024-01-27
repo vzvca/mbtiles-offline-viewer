@@ -344,7 +344,10 @@ char* http_mimetype( char *k, int len )
        { ".json", "application/json" },
        { ".js",   "application/javascript" },
        { ".html", "text/html" },
-       { ".css",  "text/css" }
+       { ".css",  "text/css" },
+       { ".png",  "image/png" },
+       { ".jpg",  "image/jpeg" },
+       { ".jpeg",  "image/jpeg" }
       };
   int i, elen;
   for( i = 0; i < sizeof(tab)/sizeof(tab[0]); ++i ) {

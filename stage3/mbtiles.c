@@ -340,7 +340,7 @@ struct json_object *mklayer( const char *src, char *type, char *rgb )
  * --------------------------------------------------------------------------*/
 char *mbtiles_auto_vectorial_style_json( void *dbh, int *len )
 {
-  int zero = zero;
+  int zero = 0;
   char *data = NULL;
   
   // check if an openmaptiles style can be used

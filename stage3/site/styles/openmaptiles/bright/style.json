@@ -24,11 +24,11 @@
   "sources": {
     "openmaptiles": {
       "type": "vector",
-      "url": "http://127.0.0.1:%1$d/tiles/tiles.json"
+      "url": "tiles/tiles.json"
     }
   },
   "sprite": "http://127.0.0.1:%1$d/styles/openmaptiles/bright/sprite",
-  "glyphs": "http://127.0.0.1:%1$d/font/{fontstack}/{range}.pbf",
+  "glyphs": "font/{fontstack}/{range}.pbf",
   "layers": [
     {
       "id": "background",
