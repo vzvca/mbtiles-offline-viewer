@@ -57,67 +57,69 @@ function parse_style_json( style )
 	});
 	// --------------------------------------------------
 
-
-	// -- This will be a radio button group
-	$("<fieldset>", {
-	    "id": "fset-mode-" + lid
-	}).appendTo("#div-" + lid);
-	$("<legend>", {
-	    "id": "fset-mode-legend-" + lid
-	}).appendTo("#fset-mode-" + lid);
-	$("#fset-mode-legend-" + lid).text("rendering mode");
+	if (!lid.endsWith('-fill') && !lid.endsWith('-line')) {
+	    // -- This will be a radio button group
+	    $("<fieldset>", {
+		"id": "fset-mode-" + lid
+	    }).appendTo("#div-" + lid);
+	    $("<legend>", {
+		"id": "fset-mode-legend-" + lid
+	    }).appendTo("#fset-mode-" + lid);
+	    $("#fset-mode-legend-" + lid).text("rendering mode");
 	    
-	// --------------------------------------------------
-	// -- Radio button for line rendering
-	// --------------------------------------------------
-	$("<input>", {
-	    "id":   "line-" + lid,
-	    "name":   "render-" + lid,
-	    "type": "radio",
-	    "class": "styled"
-	}).appendTo("#fset-mode-" + lid);
+	    // --------------------------------------------------
+	    // -- Radio button for line rendering
+	    // --------------------------------------------------
+	    $("<input>", {
+		"id":   "line-" + lid,
+		"name":   "render-" + lid,
+		"type": "radio",
+		"class": "styled"
+	    }).appendTo("#fset-mode-" + lid);
 
-	$("<label>", {
-	    "id":   "label-line-" + lid,
-	    "for":   "line-" + lid,
-	}).appendTo("#fset-mode-" + lid);
-	$("#label-line-" + lid).text( "line" );
-	// --------------------------------------------------
+	    $("<label>", {
+		"id":   "label-line-" + lid,
+		"for":   "line-" + lid,
+	    }).appendTo("#fset-mode-" + lid);
+	    $("#label-line-" + lid).text( "line" );
+	    // --------------------------------------------------
 
-	// --------------------------------------------------
-	// -- Radio button for point rendering
-	// --------------------------------------------------
-	$("<input>", {
-	    "id":   "point-" + lid,
-	    "name":   "render-" + lid,
-	    "type": "radio",
-	    "class": "styled"
-	}).appendTo("#fset-mode-" + lid);
+	    // --------------------------------------------------
+	    // -- Radio button for point rendering
+	    // --------------------------------------------------
+	    $("<input>", {
+		"id":   "point-" + lid,
+		"name":   "render-" + lid,
+		"type": "radio",
+		"class": "styled"
+	    }).appendTo("#fset-mode-" + lid);
 
-	$("<label>", {
-	    "id":   "label-point-" + lid,
-	    "for":   "point-" + lid,
-	}).appendTo("#fset-mode-" + lid);
-	$("#label-point-" + lid).text( "point" );
-	// --------------------------------------------------
+	    $("<label>", {
+		"id":   "label-point-" + lid,
+		"for":   "point-" + lid,
+	    }).appendTo("#fset-mode-" + lid);
+	    $("#label-point-" + lid).text( "point" );
+	    // --------------------------------------------------
 
-	// --------------------------------------------------
-	// -- Radio button for fill rendering
-	// --------------------------------------------------
-	$("<input>", {
-	    "id":   "fill-" + lid,
-	    "name":   "render-" + lid,
-	    "type": "radio",
-	    "class": "styled"
-	}).appendTo("#fset-mode-" + lid);
+	    // --------------------------------------------------
+	    // -- Radio button for fill rendering
+	    // --------------------------------------------------
+	    $("<input>", {
+		"id":   "fill-" + lid,
+		"name":   "render-" + lid,
+		"type": "radio",
+		"class": "styled"
+	    }).appendTo("#fset-mode-" + lid);
 
-	$("<label>", {
-	    "id":   "label-fill-" + lid,
-	    "for":   "fill-" + lid,
-	}).appendTo("#fset-mode-" + lid);
-	$("#label-fill-" + lid).text( "fill" );
-	// --------------------------------------------------
+	    $("<label>", {
+		"id":   "label-fill-" + lid,
+		"for":   "fill-" + lid,
+	    }).appendTo("#fset-mode-" + lid);
+	    $("#label-fill-" + lid).text( "fill" );
+	    // --------------------------------------------------
+	}
 
+	
 	// -- color group
 	$("<fieldset>", {
 	    "id": "fset-color-" + lid
@@ -143,7 +145,15 @@ function parse_style_json( style )
 	$("#label-color-" + lid).text( "Color" );
 	$("#color-" + lid).change( function() {
 	    console.log("color change layer " + lid);
-	    map.setPaintProperty( lid, "fill-color", $(this).val());
+	    if (lid.endsWith('-fill')) {
+		map.setPaintProperty( lid, "fill-color", $(this).val());
+	    }
+	    else if (lid.endsWith('-line')) {
+		map.setPaintProperty( lid, "line-color", $(this).val());
+	    }
+	    else {
+		map.setPaintProperty( lid, "fill-color", $(this).val());
+	    }
 	});
 	// --------------------------------------------------
     }

@@ -374,12 +374,12 @@ char *mbtiles_auto_vectorial_style_json( void *dbh, int *len )
       exit(1);
     }
 
-    jb = json_object_object_get_ex( tiles, "vector_layers", &layers );
+    jb = json_object_object_get_ex( tiles, "vector_layers", &srclayers );
     if ( jb != TRUE ) {
       fprintf( stderr, "Missing field 'vector_layers'.\n");
       exit(1);
     }
-    n = json_object_array_length( layers );
+    n = json_object_array_length( srclayers );
     if ( n <= 0 ) {
       fprintf( stderr, "'vector_layers' is empty.\n");
       exit(1);
@@ -409,9 +409,15 @@ char *mbtiles_auto_vectorial_style_json( void *dbh, int *len )
     layers = json_object_new_array();
     json_object_object_add( style, "layers",  json_object_get(layers));
     for( i = 0; i < n; ++i) {
-      //@todo struct json_object *o = json_object_array_get_idx( vector_layers, i);
-      struct json_object *o = json_object_array_get_idx( srclayers, i);
-      const char *src = json_object_get_string(o);
+      struct json_object *o = json_object_array_get_idx(srclayers, i);
+      struct json_object *id;
+      
+      jb = json_object_object_get_ex( o, "id", &id );
+      if ( jb != TRUE ) {
+	fprintf( stderr, "Missing field 'id'.\n");
+	exit(1);
+      }
+      const char *src = json_object_get_string(id);
       
       layer = mklayer( src, "fill", "#8080FF" /*fillcolor(color)*/);
       json_object_array_add( layers, layer );
@@ -428,6 +434,11 @@ char *mbtiles_auto_vectorial_style_json( void *dbh, int *len )
     //@todo json_object_put(vector_layers);
     json_object_put(srclayers);
     json_object_put(style);
+
+    if (len != NULL) {
+      *len = strlen(data);
+    }
+    return data;
   }
 }
 
@@ -474,7 +485,7 @@ char *mbtiles_auto_style_json( void *dbh, int *len )
     }
     else {
       fprintf(stderr, "Cannot automatically generate style for vector tiles.\n");
-      return NULL;
+      data = mbtiles_auto_vectorial_style_json( dbh, &dlen);
     }
   }
   
