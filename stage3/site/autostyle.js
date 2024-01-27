@@ -45,7 +45,6 @@ function parse_style_json( style )
 	    "class": "styled"
 	}).appendTo("#fset-vis-" + lid);
 	console.log("Layer " + lid + " visibility " + map.getLayoutProperty(lid, 'visibility'));
-	$("#vis-" + lid).prop("checked",true);
 	$("#vis-" + lid).click( function() {
 	    console.log("Toggle layer visibility " + lid );
 	    if ( $("#vis-" + lid).is(":checked") ) {
@@ -55,6 +54,8 @@ function parse_style_json( style )
 		map.setLayoutProperty(lid, 'visibility', 'none');
 	    }
 	});
+	// do not fill by default when auto-styling is on
+	$("#vis-" + lid).prop("checked",!lid.endsWith('-fill'));
 	// --------------------------------------------------
 
 	if (!lid.endsWith('-fill') && !lid.endsWith('-line')) {
@@ -132,10 +133,19 @@ function parse_style_json( style )
 	// --------------------------------------------------
 	// -- Rendering color chooser
 	// --------------------------------------------------
+	let colorval = "#000000";
+	if (lid.endsWith('-fill')) {
+	    colorval = "#8080FF";
+	}
+	if (lid.endsWith('-line')) {
+	    colorval = "#3030FF";
+	}
+	
 	$("<input>", {
 	    "id":   "color-" + lid,
 	    "name": "color-" + lid,
-	    "type": "color"
+	    "type": "color",
+	    "value": colorval
 	}).appendTo("#fset-color-" + lid);
 
 	$("<label>", {

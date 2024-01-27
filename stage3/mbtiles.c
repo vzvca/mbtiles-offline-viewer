@@ -296,7 +296,7 @@ char *mbtiles_is_openmaptiles( void *dbh )
  *         "source-layer": "<src>"
  *     } 
  * --------------------------------------------------------------------------*/
-struct json_object *mklayer( const char *src, char *type, char *rgb )
+struct json_object *mklayer( const char *src, char *type, char *rgb, int vis )
 {
   char layerid[64], prop[32];
   struct json_object *layer, *paint, *filter_all, *layout;
@@ -325,7 +325,8 @@ struct json_object *mklayer( const char *src, char *type, char *rgb )
 
   layout = json_object_new_object();
   json_object_object_add( layer, "layout",  json_object_get(layout));
-  json_object_object_add( layout, "visibility", json_object_new_string("visible"));
+  json_object_object_add( layout, "visibility",
+			  json_object_new_string(vis ? "visible" : "none"));
 
   return layer;
 }
@@ -419,16 +420,16 @@ char *mbtiles_auto_vectorial_style_json( void *dbh, int *len )
       }
       const char *src = json_object_get_string(id);
       
-      layer = mklayer( src, "fill", "#8080FF" /*fillcolor(color)*/);
+      layer = mklayer( src, "fill", "#8080FF" /*fillcolor(color)*/, 0);
       json_object_array_add( layers, layer );
-      layer = mklayer( src, "line", "#3030FF" /*linecolor(color)*/);
+      layer = mklayer( src, "line", "#3030FF" /*linecolor(color)*/, 1);
       json_object_array_add( layers, layer );
     }
     
     data = (char*) json_object_to_json_string_ext( style, JSON_C_TO_STRING_PRETTY );
-    data = strdup(data);
+    //data = strdup(data);
 
-    puts(data);
+    //puts(data);
     
     // free JSON objects
     //@todo json_object_put(vector_layers);
