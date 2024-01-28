@@ -143,6 +143,15 @@ $ ./mbv -x -m ./data/ex3/maptiler-satellite-lowres-2018-03-01-planet.mbtiles
 ![alt text](images/raster-sat.png)
 
 
+### Example 2 : vectorial autostyling
+
+~~~~
+$ ./mbv -x -m ./data/ex2/iceland.mbtiles
+~~~~
+
+![alt text](images/autostyle.png)
+
+
 ## Credits
 
 This project depends on work by other people.
