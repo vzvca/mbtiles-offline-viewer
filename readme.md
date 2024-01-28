@@ -1,4 +1,4 @@
-# OpenMapTiles standalone viewer
+# Small mbtiles standalone viewer
 
 This repository contains small standalone C programs to display maps using `MapLibre` in offline / air-gapped environments.
 
@@ -125,7 +125,7 @@ Program usage :
 $ ./mbv -h
 usage: 
 	 -h            Prints this help message.
-	 -b            Be verbose.
+	 -v            Be verbose.
 	 -x            Opens web browser.
 	 -p port       Sets port number to listen on.
 	 -m mbtiles    Sets mbtile file to display.
@@ -133,6 +133,26 @@ usage:
 ~~~~
 
 Additional dependency `libz`.
+
+Add `self://` URL scheme in `style.json` to avoid to have http(s) URL in `style.json`. The `self://` URLs are modified on client side and replaced with server URL. Example in `styles/openmapstyles/bright/style.json`:
+
+~~~~
+...
+
+  "sources": {
+    "openmaptiles": {
+      "type": "vector",
+      "url": "tiles/tiles.json"
+    }
+  },
+  "sprite": "self:///styles/openmaptiles/bright/sprite",
+  "glyphs": "font/{fontstack}/{range}.pbf",
+  
+...
+~~~~
+
+The URL for sprite becomes `http://127.0.0.1:9003` if `mbv` is invoked with `./mbv -x -m ./data/ex2/iceland.mbtiles -s @bright -p 9003`.
+
 
 ### Example 1 : raster mbtiles rendering
 
@@ -165,6 +185,12 @@ This project depends on work by other people.
  * [dark style](https://github.com/openmaptiles/positron-gl-style)
  * [positron style](https://github.com/openmaptiles/dark-matter-gl-style)
 
+## Future directions
+
+ * Load multiple mbtiles covering different area
+ * Display geopackage
+ * Display spatialite database
+ * Have a real styling engine and download resulting style
 
 ## Licensing
 
