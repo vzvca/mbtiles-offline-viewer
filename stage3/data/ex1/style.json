@@ -3,7 +3,7 @@
     "sources": {
 	"countries": {
 	    "type": "vector",
-	    "tiles": ["http://127.0.0.1:%1$d/tiles/{z}/{x}/{y}.pbf"],
+	    "tiles": ["self:///tiles/{z}/{x}/{y}.pbf"],
 	    "maxzoom": 6
 	}
     },

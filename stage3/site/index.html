@@ -112,7 +112,15 @@
 	  container: 'map',
 	  style: 'style.json',
 	  center: [0, 0],
-	  zoom: 1
+	  zoom: 1,
+	  transformRequest: (url, restype) => {
+	      if (url.startsWith('self://')) {
+		  //console.log("Remap " + url + " " + restype);
+		  return {
+		      url: url.replace('self://', window.location.origin)
+		  }
+	      }
+	  }
       });
       // Add zoom and rotation control to the map
       map.addControl(new maplibregl.NavigationControl());

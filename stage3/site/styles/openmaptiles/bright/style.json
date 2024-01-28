@@ -27,7 +27,7 @@
       "url": "tiles/tiles.json"
     }
   },
-  "sprite": "http://127.0.0.1:%1$d/styles/openmaptiles/bright/sprite",
+  "sprite": "self:///styles/openmaptiles/bright/sprite",
   "glyphs": "font/{fontstack}/{range}.pbf",
   "layers": [
     {

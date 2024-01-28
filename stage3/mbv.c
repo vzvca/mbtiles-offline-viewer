@@ -49,7 +49,6 @@ int serverfd = -1;
 
 
 int g_quiet = 1;
-int g_zero = 0;
 int g_port = 9000;
 char *g_map, *g_style;
 
@@ -67,6 +66,8 @@ char *emalloc( size_t sz );
 
 /* --------------------------------------------------------------------------
  *  Basic logger
+ *  @todo fix bug when printing url escaped 'fmt' which can contain %20s
+ *        interpreted by fprintf. %20 means space in URL escape...
  * --------------------------------------------------------------------------*/
 void logger(const char *fmt, ...)
 {
@@ -229,82 +230,83 @@ int http_reply_style( cnx_t *cnx, char *mtype )
 {
   static char *data = NULL;
   static int len = 0;
-
+  static int deflate = 1;
+  
   logger("http_reply_style: %s\n", g_style );
 
-  // force to reply with uncompressed data
-  cnx->req.accept_deflate = 0;
-  
-  if ( g_style[0] == '@' ) {
-    if ( !strcmp( g_style + 1, "basic" ) ||
-	 !strcmp( g_style + 1, "bright" ) ||
-	 !strcmp( g_style + 1, "dark" ) ||
-	 !strcmp( g_style + 1, "positron" )) {
+  if (data == NULL) {
+    if ( g_style[0] == '@' ) {
+      if ( !strcmp( g_style + 1, "basic" ) ||
+	   !strcmp( g_style + 1, "bright" ) ||
+	   !strcmp( g_style + 1, "dark" ) ||
+	   !strcmp( g_style + 1, "positron" )) {
       
-      char style[48] = "styles/openmaptiles/";
-      char *p;
+	char style[48] = "styles/openmaptiles/";
+	char *p;
       
-      strcat( style, g_style+1 );
-      strcat( style, "/style.json");
+	strcat( style, g_style+1 );
+	strcat( style, "/style.json");
 
-      p = arch_data( style, &g_zero );
-      if ( p ) {
-	data = emalloc(strlen(p)+32);
-	sprintf( data, p, g_port );
-	len = strlen(data);
-      }
-      else {
-	fprintf( stderr, "Unknown predefined style '%s'. Giving up...\n", g_style+1 );
-	exit(1);
-      }
-    }
-    else if ( !strcmp( g_style + 1, "auto" )) {
-      data = mbtiles_auto_style_json( g_sql, &len );
-    }
-    else {
-      fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
-      return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
-    }
-  }
-  else {
-    FILE *fin = fopen( g_style, "r" );
-    char *p;
-      
-    if ( fin == NULL ) {
-      perror( g_style );
-      exit(1);
-    }
-    if ( fseek( fin, 0L, SEEK_END) == -1 ) {
-      perror( g_style );
-      exit(1);
-    }
-    len = (int) ftell(fin);
-    rewind(fin);
-
-    if ( len > 0 ) {
-      int n, t = 0;
-      p = (char*) emalloc(len);
-      while( t < len ) {
-	n = fread( p + t, 1, (len-t > BLKIO) ? BLKIO : len - t, fin);
-	if ( n == -1 ) {
-	  perror( g_style );
+	data = arch_data(style, &cnx->req.accept_deflate);
+	len = arch_size(style, &cnx->req.accept_deflate);
+	if (data == NULL ) {
+	  fprintf( stderr, "Unknown predefined style '%s'. Giving up...\n", g_style+1 );
 	  exit(1);
 	}
-	t += n;
       }
-      data = emalloc(len + 4);
-      sprintf( data, p, g_port );
-      len = strlen(data);
-      free(p);
+      else if ( !strcmp( g_style + 1, "auto" )) {
+	// force to reply with uncompressed data
+	deflate = 0;
+	data = mbtiles_auto_style_json( g_sql, &len );
+      }
+      else {
+	fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
+	return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
+      }
     }
     else {
-      fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
-      return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
-    }
+      FILE *fin = fopen( g_style, "r" );
+      char *p;
+      
+      if ( fin == NULL ) {
+	perror( g_style );
+	exit(1);
+      }
+      if ( fseek( fin, 0L, SEEK_END) == -1 ) {
+	perror( g_style );
+	exit(1);
+      }
+      len = (int) ftell(fin);
+      rewind(fin);
+
+      if ( len > 0 ) {
+	int n, t = 0;
+	p = (char*) emalloc(len);
+	while( t < len ) {
+	  n = fread( p + t, 1, (len-t > BLKIO) ? BLKIO : len - t, fin);
+	  if ( n == -1 ) {
+	    perror( g_style );
+	    exit(1);
+	  }
+	  t += n;
+	}
+	data = emalloc(len + 4);
+	sprintf( data, p, g_port );
+	len = strlen(data);
+	free(p);
+      }
+      else {
+	fprintf( stderr, "Unknown predefined style '%s'.\n", g_style );
+	return http_reply_error( cnx, HTTP_STATUS_NOT_FOUND );
+      }
     
-    fclose(fin);
+      fclose(fin);
+    
+      deflate = 0;
+    }
   }
 
+  cnx->req.accept_deflate = deflate;
   http_reply_data( cnx, mtype, data, len );
 }
 
