@@ -520,7 +520,7 @@ char *emalloc( size_t sz )
  * --------------------------------------------------------------------------*/
 char *erealloc( char *p, size_t sz )
 {
-  char *r = (char*) realloc(r, sz);
+  char *r = (char*) realloc(p, sz);
   if ( !r ) {
     fputs( "realloc failed: memory allocation error.\n", stderr );
     exit(1);
